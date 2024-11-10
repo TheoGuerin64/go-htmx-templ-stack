@@ -1,0 +1,20 @@
+package templates
+
+templ header(title string) {
+	<!DOCTYPE html>
+	<head>
+		<title>{ title } | Project</title>
+		<link rel="icon" href="/assets/icon/favicon.ico"/>
+		<meta charset="UTF-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+		<link href="/assets/css/bulma.min.css" rel="stylesheet"/>
+	</head>
+}
+
+templ Layout(content templ.Component, title string) {
+	@header(title)
+	<body>
+		@content
+		<script src="/assets/js/htmx.min.js"></script>
+	</body>
+}

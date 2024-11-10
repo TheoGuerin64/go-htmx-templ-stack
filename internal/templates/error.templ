@@ -1,0 +1,8 @@
+package templates
+
+import "strconv"
+import "net/http"
+
+templ Error(code int) {
+	<h1>{ strconv.Itoa(code) } - { http.StatusText(code) }</h1>
+}

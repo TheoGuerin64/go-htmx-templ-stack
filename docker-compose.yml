@@ -1,0 +1,39 @@
+x-database-environment: &database-environment
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?error}
+  POSTGRES_USER: ${POSTGRES_USER:?error}
+  POSTGRES_DB: ${POSTGRES_DB:?error}
+
+name: project
+services:
+  server:
+    build:
+      target: prod
+    environment:
+      <<: *database-environment
+      ENVIRONNEMENT: prod
+      ADDRESS: 0.0.0.0:5050
+      SENTRY_DSN: ${SENTRY_DSN:?error}
+    networks:
+      - postgres
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+  database:
+    image: postgres:17
+    environment:
+      <<: *database-environment
+    volumes:
+      - database-data:/var/lib/postgresql/data
+    networks:
+      - postgres
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "$POSTGRES_USER" ]
+      interval: 10s
+      retries: 5
+      start_period: 1s
+    restart: unless-stopped
+volumes:
+  database-data:
+networks:
+  postgres:

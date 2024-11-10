@@ -1,0 +1,13 @@
+services:
+  server:
+    build:
+      target: dev
+    environment:
+      ENVIRONNEMENT: dev
+    volumes:
+      - .:/app
+    ports:
+      - 5050:5050
+  database:
+    ports:
+      - 5432:5432

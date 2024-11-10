@@ -1,0 +1,107 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  go-version: '1.23.2'
+  gosec-version: '2.21.4'
+
+jobs:
+  generating:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate templ code
+        uses: capthiron/templ-generator-action@v1
+        with:
+          go-version: ${{ env.go-version }}
+
+  formating:
+    needs: [generating]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.go-version }}
+
+      - name: Format
+        run: go fmt ./...
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Format go code"
+
+  linting:
+    needs: [formating]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.go-version }}
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+  scanning:
+    needs: [formating]
+    runs-on: ubuntu-latest
+    env:
+      GO111MODULE: on
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.go-version }}
+
+      - name: Install gosec
+        run: curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v${{ env.gosec-version }}
+
+      - name: Secruity scan
+        run: gosec ./...
+
+  testing:
+    needs: [formating]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.go-version }}
+
+      - name: Test
+        run: go test ./...
+
+  deploy:
+    needs: [linting, scanning, testing]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: fjogeleit/http-request-action@v1
+        with:
+          url: '${{ secrets.API_DEPLOY_URL }}'
+          method: 'POST'
+          customHeaders: '{"accept": "application/json", "Content-Type": "application/json", "Authorization": "Bearer ${{ secrets.API_TOKEN }}"}'
+          data: '{"composeId": "${{ secrets.API_COMPOSE_ID }}"}'
