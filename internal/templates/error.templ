@@ -1,7 +1,9 @@
 package templates
 
-import "strconv"
-import "net/http"
+import (
+	"net/http"
+	"strconv"
+)
 
 templ Error(code int) {
 	<h1>{ strconv.Itoa(code) } - { http.StatusText(code) }</h1>
